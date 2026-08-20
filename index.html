@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>무대음향 3급 필기: 소리의 물리적 이해와 무대 실무 (3D 시각화)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Paperlogy', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Three.js Library for 3D Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Paperlogy Font Import -->
+    <style>
+        @font-face {
+            font-family: 'Paperlogy';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Paperlogy';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Paperlogy';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Paperlogy';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2');
+            font-weight: 900;
+            font-style: normal;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Paperlogy', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 16:9 Aspect Ratio Main Slide Stage */
+        #presentation-stage {
+            width: 100vw;
+            height: 56.25vw; /* 16:9 aspect ratio */
+            max-width: 177.78vh;
+            max-height: 100vh;
+            position: relative;
+            background-color: #0b1120;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.25) 0%, transparent 80%),
+                linear-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.08) 1px, transparent 1px);
+            background-size: 100% 100%, 24px 24px, 24px 24px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(37, 99, 235, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: none;
+            padding: 3.5%;
+            flex-direction: column;
+            justify-content: space-between;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+            pointer-events: none;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Technical Header Bar */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.4);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .blueprint-tag {
+            background: rgba(30, 58, 138, 0.5);
+            border: 1px solid rgba(96, 165, 250, 0.5);
+            color: #93c5fd;
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .slide-title {
+            font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+            font-weight: 900;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(96, 165, 250, 0.5);
+            box-shadow: 0 12px 35px -5px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Navigation Controls */
+        .nav-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 6px 18px;
+            border-radius: 9999px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+        }
+
+        .nav-btn {
+            background: rgba(30, 58, 138, 0.6);
+            color: #e0f2fe;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.8);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .page-counter {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-mono: true;
+            padding: 0 8px;
+        }
+
+        /* Custom Interactive Controls */
+        .tech-btn {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            border: 1px solid #60a5fa;
+            color: white;
+            font-weight: 700;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tech-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        canvas.visualizer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-stage">
+
+    <!-- SLIDE 1: Title & Wave Motion -->
+    <div class="slide active" id="slide-1">
+        <div class="slide-header">
+            <span class="blueprint-tag">MODULE 01 // OVERVIEW</span>
+            <span class="text-xs text-blue-400 font-mono">3RD CLASS STAGE AUDIO CERTIFICATION</span>
+        </div>
+        
+        <div class="grid grid-cols-12 gap-6 h-[85%] items-center">
+            <div class="col-span-5 flex flex-col justify-center space-y-4 pr-2">
+                <div class="inline-flex items-center space-x-2 bg-blue-950/80 border border-blue-500/40 text-blue-300 px-3 py-1 rounded-full text-xs font-bold w-max">
+                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
+                    <span>국가자격 필기 시험 완전가이드</span>
+                </div>
+                <h1 class="text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight">
+                    무대음향 3급 필기:<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400">
+                        소리의 물리적 이해와 무대 실무
+                    </span>
+                </h1>
+                <p class="text-slate-300 text-sm font-medium leading-relaxed">
+                    보이지 않는 파동 에너지를 통제하고 관객에게 완벽한 음향 경험을 전달하는 음향 감독의 마스터 청사진 매뉴얼입니다.
+                </p>
+                
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs">
+                        <span class="text-blue-400 font-bold block mb-1">핵심 파형 공식</span>
+                        <span class="font-mono text-cyan-300 text-sm">f = 1 / T</span>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs">
+                        <span class="text-indigo-400 font-bold block mb-1">가청 주파수</span>
+                        <span class="font-mono text-indigo-200 text-sm">20 Hz ~ 20,000 Hz</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-7 h-full relative glass-card flex flex-col justify-between overflow-hidden">
+                <div class="flex justify-between items-center text-xs text-slate-400 font-mono border-b border-slate-700/50 pb-2">
+                    <span>3D REAL-TIME SINE WAVE OSCILLATOR</span>
+                    <span class="text-cyan-400">FREQ: 50 Hz | T = 20ms</span>
+                </div>
+                
+                <div class="relative w-full h-[78%] canvas-container">
+                    <canvas id="canvas-slide-1" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="flex justify-around items-center text-xs font-mono bg-slate-950/60 p-2 rounded-lg border border-slate-800 text-slate-300">
+                    <span class="text-blue-400">● PEAK (A = +1.0)</span>
+                    <span class="text-cyan-400">↔ WAVELENGTH (λ)</span>
+                    <span class="text-indigo-400">⏱ PERIOD (T = 20ms)</span>
+                    <span class="text-red-400">● TROUGH (A = -1.0)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: Propagation & Transduction -->
+    <div class="slide" id="slide-2">
+        <div class="slide-header">
+            <span class="blueprint-tag">SCHEMATIC 02 // PROPAGATION & TRANSDUCTION</span>
+            <span class="slide-title">소리의 전달 과정과 에너지 변환 (Transduction)</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-5 h-[85%] items-center">
+            <!-- Step 1 -->
+            <div class="glass-card h-full flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute top-0 right-0 bg-blue-600/20 text-blue-400 text-xs font-bold font-mono px-3 py-1 rounded-bl-lg border-b border-l border-blue-500/30">STEP 01</div>
+                <div>
+                    <h3 class="text-lg font-bold text-blue-300 mb-1">진동의 발생 (Sound Source)</h3>
+                    <p class="text-xs text-slate-400">음원의 떨림으로 음파 에너지 형성</p>
+                </div>
+                <div class="w-full h-44 relative my-2 canvas-container">
+                    <canvas id="canvas-step1" class="visualizer-canvas"></canvas>
+                </div>
+                <div class="bg-blue-950/60 p-3 rounded-lg border border-blue-800/40 text-xs text-slate-300">
+                    악기 현, 성대, 스피커 진동판 등의 <strong>물리적 원천 떨림</strong>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="glass-card h-full flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-cyan-600/20 text-cyan-400 text-xs font-bold font-mono px-3 py-1 rounded-bl-lg border-b border-l border-cyan-500/30">STEP 02</div>
+                <div>
+                    <h3 class="text-lg font-bold text-cyan-300 mb-1">매질(공기)을 통한 전달</h3>
+                    <p class="text-xs text-slate-400">공기 분자의 소밀파(압축/팽창) 파동</p>
+                </div>
+                <div class="w-full h-44 relative my-2 canvas-container">
+                    <canvas id="canvas-step2" class="visualizer-canvas"></canvas>
+                </div>
+                <div class="bg-red-950/60 p-2.5 rounded-lg border border-red-800/40 text-xs text-red-300 font-bold text-center">
+                    ⚠️ 진공 상태 전달 불가 (No Medium = No Sound)
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="glass-card h-full flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-emerald-600/20 text-emerald-400 text-xs font-bold font-mono px-3 py-1 rounded-bl-lg border-b border-l border-emerald-500/30">STEP 03</div>
+                <div>
+                    <h3 class="text-lg font-bold text-emerald-300 mb-1">마이크 (전기 변환기)</h3>
+                    <p class="text-xs text-slate-400">음향 파동을 교류 전기 신호로 변환</p>
+                </div>
+                <div class="w-full h-44 relative my-2 flex items-center justify-center canvas-container">
+                    <canvas id="canvas-step3" class="visualizer-canvas"></canvas>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-emerald-500/30 text-xs font-mono text-emerald-400 text-center">
+                    SIGNAL: -1.23 mV (AC) @ 1.0 kHz
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: Wave Measurement & Terminology -->
+    <div class="slide" id="slide-3">
+        <div class="slide-header">
+            <span class="blueprint-tag">SCHEMATIC 03 // MEASUREMENT</span>
+            <span class="slide-title">음파 측정 및 주요 용어 (Wavelength, Amplitude, Frequency)</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%]">
+            <div class="col-span-8 glass-card flex flex-col justify-between">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>INTERACTIVE WAVEFORM ANALYZER</span>
+                    <span class="text-blue-400">TIME SCALE: 0s ~ 1.0s</span>
+                </div>
+                
+                <div class="w-full h-[76%] relative canvas-container">
+                    <canvas id="canvas-slide-3" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                    <div class="p-2 bg-blue-950/60 border border-blue-700/50 rounded-lg text-blue-300">
+                        λ (파장) : 1주기 물리 거리 (m)
+                    </div>
+                    <div class="p-2 bg-emerald-950/60 border border-emerald-700/50 rounded-lg text-emerald-300">
+                        진폭 : 상하 변위 에너지 크기
+                    </div>
+                    <div class="p-2 bg-purple-950/60 border border-purple-700/50 rounded-lg text-purple-300">
+                        주파수 (Hz) : 1초당 진동 횟수
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-4 flex flex-col justify-between space-y-3">
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-blue-500">
+                    <h4 class="text-sm font-bold text-blue-400 mb-1">파장 (Wavelength, λ)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        음파가 한 주기(360°) 동안 매질 속을 진동하며 실제로 나아간 <strong>물리적 공간 거리</strong>. 저음일수록 파장이 깁니다.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-emerald-500">
+                    <h4 class="text-sm font-bold text-emerald-400 mb-1">진폭 (Amplitude, A)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        중심축(평형 상태)에서 최대로 위아래로 움직인 폭. <strong>소리의 에너제틱한 크기(Loudness)</strong>를 직접 결정합니다.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-purple-500">
+                    <h4 class="text-sm font-bold text-purple-400 mb-1">주파수 (Frequency, f)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        1초(1s) 동안 파동이 왕복 진동한 횟수 (단위: Hz). 인간의 청각은 이를 <strong>음의 높낮이(Pitch)</strong>로 인지합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 4: Sound Wave Characteristics Matrix -->
+    <div class="slide" id="slide-4">
+        <div class="slide-header">
+            <span class="blueprint-tag">DIAGNOSTIC MATRIX 04 // CHARACTERISTICS</span>
+            <span class="slide-title">음파 3대 요소의 물리적 인지 및 무대 현장 매핑</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-5 h-[85%]">
+            <!-- Frequency Column -->
+            <div class="glass-card flex flex-col justify-between border-t-4 border-t-blue-500">
+                <div>
+                    <span class="text-xs font-mono text-blue-400 font-bold block mb-1">01. FREQUENCY</span>
+                    <h3 class="text-xl font-bold text-white mb-2">주파수 (Hz)</h3>
+                    <ul class="text-xs text-slate-300 space-y-2 mb-4">
+                        <li>• <strong>가청 영역:</strong> 20 Hz ~ 20,000 Hz (20kHz)</li>
+                        <li>• <strong>인간의 인지:</strong> 음의 높낮이 (Pitch / High-Low)</li>
+                        <li>• <strong>물리 특성:</strong> 고음일수록 직진성 강함</li>
+                    </ul>
+                </div>
+
+                <!-- Interactive EQ Visualizer -->
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                    <span class="text-xs text-blue-400 font-bold block mb-2">현장 실무: 믹싱 콘솔 EQ 컨트롤</span>
+                    <div class="w-full h-24 relative mb-2 canvas-container">
+                        <canvas id="canvas-eq-knob" class="visualizer-canvas"></canvas>
+                    </div>
+                    <p class="text-[11px] text-slate-400">주파수대역별 게인(Gain) 조절로 음색 튜닝</p>
+                </div>
+            </div>
+
+            <!-- Amplitude Column -->
+            <div class="glass-card flex flex-col justify-between border-t-4 border-t-red-500">
+                <div>
+                    <span class="text-xs font-mono text-red-400 font-bold block mb-1">02. AMPLITUDE</span>
+                    <h3 class="text-xl font-bold text-white mb-2">진폭 (Energy)</h3>
+                    <ul class="text-xs text-slate-300 space-y-2 mb-4">
+                        <li>• <strong>특징:</strong> 파동이 가진 음압 에너지 크기</li>
+                        <li>• <strong>인간의 인지:</strong> 소리의 크기 (Volume / Loudness)</li>
+                        <li>• <strong>위험 요소:</strong> 과도한 입력 시 파형 손상</li>
+                    </ul>
+                </div>
+
+                <!-- Clipping Warning Simulator -->
+                <div class="bg-slate-950 p-3 rounded-lg border border-red-900/50 text-center relative overflow-hidden">
+                    <span class="text-xs text-red-400 font-bold block mb-2">⚠️ 클리핑(Clipping) & 컴프레서</span>
+                    <div class="w-full h-24 relative mb-2 canvas-container">
+                        <canvas id="canvas-clipping" class="visualizer-canvas"></canvas>
+                    </div>
+                    <p class="text-[11px] text-red-300 font-semibold">한계 초과 시 찌그러짐 ➔ 컴프레서 제어</p>
+                </div>
+            </div>
+
+            <!-- Wavelength Column -->
+            <div class="glass-card flex flex-col justify-between border-t-4 border-t-cyan-500">
+                <div>
+                    <span class="text-xs font-mono text-cyan-400 font-bold block mb-1">03. WAVELENGTH</span>
+                    <h3 class="text-xl font-bold text-white mb-2">파장 (λ)</h3>
+                    <ul class="text-xs text-slate-300 space-y-2 mb-4">
+                        <li>• <strong>특징:</strong> 주파수와 정확히 반비례 관계</li>
+                        <li>• <strong>저음파 (Low):</strong> 파장이 길어 장애물 회절 strong</li>
+                        <li>• <strong>고음파 (High):</strong> 파장이 짧아 직진 및 반사</li>
+                    </ul>
+                </div>
+
+                <!-- Speaker Tweeter Height Setup -->
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                    <span class="text-xs text-cyan-400 font-bold block mb-2">현장 실무: 스피커 유닛 지향각</span>
+                    <div class="w-full h-24 relative mb-2 canvas-container">
+                        <canvas id="canvas-tweeter-setup" class="visualizer-canvas"></canvas>
+                    </div>
+                    <p class="text-[11px] text-slate-400">회절이 약한 고음(Tweeter)은 관객 귀높이 직사</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: Wave Diffraction & Speaker Placement -->
+    <div class="slide" id="slide-5">
+        <div class="slide-header">
+            <span class="blueprint-tag">SCHEMATIC 05 // DIFFRACTION & PLACEMENT</span>
+            <span class="slide-title">음파 회절 현상과 무대 스피커 배치 지침</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%]">
+            <!-- Left 2 Diffraction Simulations -->
+            <div class="col-span-7 flex flex-col gap-4">
+                <div class="glass-card flex-1 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="font-bold text-blue-400">LOW FREQUENCY (LONG WAVELENGTH)</span>
+                        <span class="font-mono text-slate-400 text-[11px]">STRONG DIFFRACTION</span>
+                    </div>
+                    <div class="w-full h-32 relative canvas-container">
+                        <canvas id="canvas-diffraction-low" class="visualizer-canvas"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-300 bg-blue-950/60 p-2 rounded border border-blue-800/40 mt-1">
+                        파장이 긴 저음은 장애물(기둥, 벽)을 만나도 외곽을 크게 <strong>휘감아 회절(Bending)</strong>되어 뒤쪽까지 전달됩니다.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="font-bold text-red-400">HIGH FREQUENCY (SHORT WAVELENGTH)</span>
+                        <span class="font-mono text-slate-400 text-[11px]">SHADOW ZONE CREATION</span>
+                    </div>
+                    <div class="w-full h-32 relative canvas-container">
+                        <canvas id="canvas-diffraction-high" class="visualizer-canvas"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-300 bg-red-950/60 p-2 rounded border border-red-800/40 mt-1">
+                        파장이 짧은 고음은 장애물에 부딪혀 반사되며 뒤쪽에 <strong>음영 지역(Shadow Zone)</strong>이 형성되어 차단됩니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Speaker Aiming Diagram -->
+            <div class="col-span-5 glass-card flex flex-col justify-between border-l-4 border-l-amber-500">
+                <div>
+                    <div class="inline-block bg-amber-950 text-amber-300 font-bold text-xs px-2.5 py-1 rounded mb-2 border border-amber-700/50">
+                        💡 무대 음향 감독 핵심 결단
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2">스피커 트위터(Tweeter) 얼라인먼트</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                        고음역대는 회절 현상이 일어나지 않고 직진하므로, 관객의 귀 높이(Audience Ear Level)로 직접 조사되도록 높이와 각도를 세심하게 스택/플라잉해야 합니다.
+                    </p>
+                </div>
+
+                <div class="w-full h-48 relative border border-slate-800 rounded-lg overflow-hidden bg-slate-950 canvas-container">
+                    <canvas id="canvas-speaker-aim" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="bg-amber-950/40 p-3 rounded-lg border border-amber-800/50 text-xs text-amber-200 font-semibold text-center">
+                    🎯 TWEETER AXIS ➔ AUDIENCE EAR LEVEL DIRECT LINE OF SIGHT
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 6: Phase Characteristics -->
+    <div class="slide" id="slide-6">
+        <div class="slide-header">
+            <span class="blueprint-tag">SCHEMATIC 06 // PHASE CHARACTERISTICS</span>
+            <span class="slide-title">위상(Phase)의 기하학적 정의와 각도 매핑</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%] items-center">
+            <div class="col-span-8 glass-card h-full flex flex-col justify-between">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>UNIT CIRCLE & SINE WAVE PHASE SYNCHRONIZER</span>
+                    <span class="text-cyan-400">0° ~ 360° CYCLE</span>
+                </div>
+
+                <div class="w-full h-[80%] relative canvas-container">
+                    <canvas id="canvas-phase-sync" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="flex justify-between text-xs font-mono bg-slate-950 p-2 rounded-lg border border-slate-800 text-slate-300">
+                    <span class="text-emerald-400">0° (시작점)</span>
+                    <span class="text-blue-400">90° (최고 피크)</span>
+                    <span class="text-amber-400">180° (Zero Cross)</span>
+                    <span class="text-red-400">270° (최저 바닥)</span>
+                    <span class="text-purple-400">360° (1주기 완료)</span>
+                </div>
+            </div>
+
+            <div class="col-span-4 h-full flex flex-col justify-between space-y-4">
+                <div class="glass-card flex-1 flex flex-col justify-center">
+                    <h3 class="text-base font-bold text-cyan-300 mb-2">위상(Phase)이란?</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        파동 에너지가 시간 흐름에 따라 위아래로 출렁이는 <strong>고유의 기하학적 위치와 출발 타이밍</strong>을 나타냅니다.
+                    </p>
+                    <div class="p-3 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-400">
+                        단위: 도(Degree, °) 또는 라디안(Radian)
+                    </div>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-indigo-500">
+                    <h3 class="text-base font-bold text-indigo-300 mb-2">무대 멀티마이킹의 핵심</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        하나의 드럼 세트나 보컬에 여러 마이크를 대거나 다수의 스피커를 동시 구동할 때, 소리가 입력되는 <strong>위상 타이밍 합산</strong>이 전체 음향의 성패를 가릅니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: Sound Wave Interference -->
+    <div class="slide" id="slide-7">
+        <div class="slide-header">
+            <span class="blueprint-tag">INTERACTIVE SIM 07 // INTERFERENCE</span>
+            <span class="slide-title">보강 간섭, 상쇄 간섭 및 위상 반전(Ø) 버튼</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%]">
+            <div class="col-span-8 glass-card flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-mono text-slate-400">DYNAMIC WAVE INTERFERENCE ENGINE</span>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-slate-300 font-bold">마이크 2 위상:</span>
+                        <button id="btn-toggle-phase" class="tech-btn text-xs flex items-center space-x-1">
+                            <span>Ø 위상 반전 (Phase Invert)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full h-[76%] relative canvas-container">
+                    <canvas id="canvas-interference" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div id="interference-status-box" class="p-2.5 rounded-lg text-center font-bold text-xs transition-all">
+                    <!-- Updated via JS -->
+                </div>
+            </div>
+
+            <div class="col-span-4 flex flex-col justify-between space-y-3">
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-emerald-500">
+                    <h4 class="text-sm font-bold text-emerald-400 mb-1">동위상 (In-Phase) ➔ 보강 간섭</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        두 파동의 마루와 골이 똑같이 일치할 때 파동 에너지가 <strong>2배(+6dB)로 증폭</strong>되어 풍성하고 단단한 소리가 납니다.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-red-500">
+                    <h4 class="text-sm font-bold text-red-400 mb-1">역위상 (180° Out-of-Phase) ➔ 상쇄 간섭</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        두 파동의 위상이 180° 반대로 만나 에너지가 서로 소실되어 <strong>소리가 사라지거나 깡통 소리(Comb Filter)</strong>가 발생합니다.
+                    </p>
+                </div>
+
+                <div class="glass-card p-3 flex items-center space-x-3 bg-slate-900 border border-slate-700">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-lg text-white font-mono shadow-lg border border-blue-400">
+                        Ø
+                    </div>
+                    <div class="text-xs">
+                        <span class="font-bold text-white block">콘솔 위상 반전 스위치</span>
+                        <span class="text-slate-400">스네어 탑/바텀, 멀티 마이크 상쇄 시 즉시 반전 해결</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: Speed of Sound Calculation -->
+    <div class="slide" id="slide-8">
+        <div class="slide-header">
+            <span class="blueprint-tag">FORMULA & THERMAL SIM 08 // SPEED OF SOUND</span>
+            <span class="slide-title">온도에 따른 소리의 속도(음속) 계산</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%] items-center">
+            <div class="col-span-5 glass-card h-full flex flex-col justify-between">
+                <div>
+                    <span class="text-xs font-mono text-blue-400 font-bold block mb-1">ACOUSTIC PHYSICS FORMULA</span>
+                    <h3 class="text-2xl font-black text-white mb-3">음속 공식</h3>
+                    
+                    <div class="bg-slate-950 p-4 rounded-xl border border-blue-500/40 text-center mb-4">
+                        <span class="text-2xl lg:text-3xl font-mono font-bold text-cyan-300">
+                            v = 331.5 + (0.6 × T)
+                        </span>
+                        <span class="block text-xs text-slate-400 mt-1">(v: m/s, T: 섭씨 온도 ℃)</span>
+                    </div>
+
+                    <ul class="text-xs text-slate-300 space-y-2 leading-relaxed">
+                        <li>• <strong>0℃ 기준 음속:</strong> 초당 331.5 m/s</li>
+                        <li>• <strong>온도 계수:</strong> 기온 1℃ 상승할 때마다 속도 <strong>0.6 m/s 씩 증가</strong></li>
+                        <li>• <strong>공기 밀도:</strong> 더운 공기일수록 분자 운동 활발 ➔ 음속 증가</li>
+                    </ul>
+                </div>
+
+                <!-- Interactive Temperature Slider -->
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700">
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                        <span class="text-slate-300">공연장 온실 온도 조절 (T):</span>
+                        <span id="temp-display" class="text-cyan-400 font-mono">15 ℃</span>
+                    </div>
+                    <input type="range" id="temp-range" min="-10" max="40" value="15" class="w-full accent-blue-500 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+                        <span>-10℃</span>
+                        <span>0℃</span>
+                        <span>15℃ (표준)</span>
+                        <span>40℃</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thermal Particle Simulation Canvas -->
+            <div class="col-span-7 glass-card h-full flex flex-col justify-between relative">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>AIR MOLECULE KINETIC SIMULATOR</span>
+                    <span id="speed-result-display" class="text-emerald-400 font-bold text-sm">CALCULATED SPEED: 340.5 m/s</span>
+                </div>
+
+                <div class="w-full h-[80%] relative canvas-container">
+                    <canvas id="canvas-thermal-sim" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="p-2.5 bg-blue-950/60 border border-blue-800/50 rounded-lg text-xs text-center text-blue-200 font-semibold">
+                    🌡️ 기온이 올라갈수록 공기 입자의 진동이 빨라져 소리가 관객에게 더 신속히 전달됩니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: Delay Tower Tuning -->
+    <div class="slide" id="slide-9">
+        <div class="slide-header">
+            <span class="blueprint-tag">FIELD PRACTICE 09 // DELAY TOWER TUNING</span>
+            <span class="slide-title">야외 대형 공연장 딜레이 타워(Delay Tower) 시간 계산 및 튜닝</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%]">
+            <div class="col-span-8 glass-card flex flex-col justify-between">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>DELAY ALIGNMENT FIELD SIMULATOR (DISTANCE: 34m @ 15℃)</span>
+                    <span class="text-emerald-400">CALCULATED DELAY: 100 ms</span>
+                </div>
+
+                <div class="w-full h-[76%] relative canvas-container">
+                    <canvas id="canvas-delay-sim" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+                    <div class="bg-slate-900 p-2 rounded border border-slate-700 text-slate-300">
+                        1. 음속: 340.5 m/s
+                    </div>
+                    <div class="bg-slate-900 p-2 rounded border border-slate-700 text-slate-300">
+                        2. 도달시간: 34m / 340.5 = 0.1s
+                    </div>
+                    <div class="bg-emerald-950 p-2 rounded border border-emerald-600 text-emerald-300 font-bold">
+                        3. 콘솔 DELAY: 100 ms
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-4 flex flex-col justify-between space-y-3">
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-blue-500">
+                    <span class="text-xs font-bold text-blue-400 font-mono">STEP 1</span>
+                    <h4 class="text-sm font-bold text-white mb-1">현장 환경 온도 측정</h4>
+                    <p class="text-xs text-slate-300">
+                        15℃ 기준 대입: 331.5 + (0.6 × 15) = <strong>340.5 m/s</strong> (초당 약 340m 이동)
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-cyan-500">
+                    <span class="text-xs font-bold text-cyan-400 font-mono">STEP 2</span>
+                    <h4 class="text-sm font-bold text-white mb-1">거리차 시간 계산</h4>
+                    <p class="text-xs text-slate-300">
+                        메인 스피커와 딜레이 타워 거리(34m) 계산:<br>
+                        34m / 340.5 m/s = <strong>0.1초 (100 ms)</strong>
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-emerald-500">
+                    <span class="text-xs font-bold text-emerald-400 font-mono">STEP 3</span>
+                    <h4 class="text-sm font-bold text-white mb-1">DSP 콘솔 지연 설정</h4>
+                    <p class="text-xs text-slate-300">
+                        딜레이 타워 스피커에 <strong>100ms 지연</strong>을 적용해 메인 소리와 완벽히 동시 도달시킴.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: Logarithmic Scale & Decibels -->
+    <div class="slide" id="slide-10">
+        <div class="slide-header">
+            <span class="blueprint-tag">ACOUISTICAL UNIT 10 // DECIBEL SCALE</span>
+            <span class="slide-title">로그 스케일(Logarithmic Scale)과 1조 배의 에너지 범위</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%] items-center">
+            <div class="col-span-5 glass-card h-full flex flex-col justify-between">
+                <div>
+                    <span class="text-xs font-mono text-purple-400 font-bold block mb-1">HUMAN AUDITORY PERCEPTION</span>
+                    <h3 class="text-2xl font-bold text-white mb-3">데시벨(dB)의 본질</h3>
+                    
+                    <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                        인간의 귀는 소리의 에너지를 선형적(1, 2, 3, 4)으로 인지하지 않고, <strong>비율적(로그 스케일: 1, 10, 100, 1000)</strong>으로 인지합니다.
+                    </p>
+
+                    <div class="bg-purple-950/60 p-3.5 rounded-lg border border-purple-700/50 text-xs text-purple-200 mb-4">
+                        <strong>데시벨(dB)이란?</strong><br>
+                        고정된 절대 단위(kg, cm)가 아닌, 기준값에 대한 측정값의 <strong>비율(Ratio)을 다루기 쉽게 압축한 단위</strong>입니다.
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center font-mono text-xs text-cyan-300">
+                    120 dB SPL = 1,000,000,000,000 배 에너지를 압축!
+                </div>
+            </div>
+
+            <div class="col-span-7 glass-card h-full flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>3D LOGARITHMIC COMPRESSION FUNNEL</span>
+                    <span class="text-purple-400">RATIO: 1 : 10^12</span>
+                </div>
+
+                <div class="w-full h-[82%] relative canvas-container">
+                    <canvas id="canvas-log-funnel" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="text-center text-xs text-slate-400 font-mono">
+                    가청 한계치 (0 dB) ---------------------> 통증 한계치 (120 dB)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: Sound Pressure Level (dB SPL) Chart -->
+    <div class="slide" id="slide-11">
+        <div class="slide-header">
+            <span class="blueprint-tag">ACOUSTIC METRICS 11 // SOUND PRESSURE LEVEL</span>
+            <span class="slide-title">음압 레벨 (dB SPL) 체계 및 청각 안전 기준</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%] items-center">
+            <!-- Vertical Interactive dB SPL Meter -->
+            <div class="col-span-4 glass-card h-full flex flex-col justify-between">
+                <span class="text-xs font-mono text-slate-400 text-center">VERTICAL dB SPL METER</span>
+                
+                <div class="w-full h-[85%] relative flex justify-center canvas-container">
+                    <canvas id="canvas-spl-meter" class="visualizer-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Details Side -->
+            <div class="col-span-8 h-full flex flex-col justify-between space-y-3">
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-red-500 bg-red-950/20">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="text-base font-bold text-red-400">120 ~ 130 dB SPL : 통증 한계치 (Threshold of Pain)</h4>
+                        <span class="font-mono text-xs bg-red-900/80 text-red-200 px-2 py-0.5 rounded">DANGER</span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        귀에서 물리적 고통을 느끼며 청력 세포가 파괴될 수 있는 수치 (예: 록 콘서트장 메인 스피커 바로 앞, 제트기 이착륙).
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-amber-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="text-base font-bold text-amber-300">90 dB SPL : 소음 작업 환경</h4>
+                        <span class="font-mono text-xs bg-amber-900/80 text-amber-200 px-2 py-0.5 rounded">WARNING</span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        공사장 및 대형 기계 소음 레벨. 장시간 노출 시 청력 손상 유발.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-emerald-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="text-base font-bold text-emerald-300">60 dB SPL : 일상 대화 레벨</h4>
+                        <span class="font-mono text-xs bg-emerald-900/80 text-emerald-200 px-2 py-0.5 rounded">NORMAL</span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        조용한 사무실 및 일반적인 대화 수준의 음압.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-blue-500">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="text-base font-bold text-blue-300">0 dB SPL : 가청 한계치 (Threshold of Hearing)</h4>
+                        <span class="font-mono text-xs bg-blue-900/80 text-blue-200 px-2 py-0.5 rounded">BASE</span>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        건강한 청년이 들을 수 있는 가장 작은 소리의 기준점 (주의: 에너지가 0이라는 뜻이 아니라 <strong>기준 압력 $20\mu Pa$</strong>를 의미).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 12: Proscenium Arch Theater Structure -->
+    <div class="slide" id="slide-12">
+        <div class="slide-header">
+            <span class="blueprint-tag">THEATER ARCHITECTURE 12 // PROSCENIUM ARCH</span>
+            <span class="slide-title">프로시니엄 아치(Proscenium Arch) 극장 구조와 공간 분리</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%]">
+            <!-- 3D Interactive Proscenium Canvas -->
+            <div class="col-span-7 glass-card h-full flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center text-xs font-mono text-slate-400">
+                    <span>3D INTERACTIVE PROSCENIUM ARCH ARCHITECTURE</span>
+                    <span class="text-cyan-400">ROTATE / ZOOM VIEW</span>
+                </div>
+
+                <div id="threejs-container-slide12" class="w-full h-[85%] relative rounded-lg overflow-hidden bg-slate-950">
+                    <!-- Three.js renders here -->
+                </div>
+
+                <div class="text-center text-[11px] text-slate-400 font-mono">
+                    액자형 프레임(Proscenium)을 기준으로 무대 공간과 관객석 공간 분리
+                </div>
+            </div>
+
+            <div class="col-span-5 h-full flex flex-col justify-between space-y-3">
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-blue-500">
+                    <h3 class="text-lg font-bold text-blue-300 mb-1">프로시니엄 아치 (Proscenium Arch)</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        관객석과 무대를 명확하게 구분해주는 <strong>액자 형태의 극장 건축 구조</strong>입니다. 무대 위의 환상을 관찰할 수 있도록 프레임을 제공합니다.
+                    </p>
+                </div>
+
+                <div class="glass-card flex-1 flex flex-col justify-center border-l-4 border-l-indigo-500">
+                    <h3 class="text-lg font-bold text-indigo-300 mb-1">은폐된 기술 공간 (Hidden Tech Area)</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        무대 상부 플라이 타워, 조명 바텐, 음향 스피커 클러스터 등 복잡한 메커니즘이 <strong>관객의 시야에서 완전히 숨겨져</strong> 안전하게 운용됩니다.
+                    </p>
+                </div>
+
+                <div class="glass-card p-3 bg-slate-900 border border-slate-700 text-xs text-slate-300">
+                    🏛️ <strong>음향 감독 적용점:</strong> 극장 잔향시간(RT60) 측정 및 프로시니엄 상단 센터 클러스터 스피커의 커버리지 지향각 계산 기준점.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 13: Stage Management & Cable Management -->
+    <div class="slide" id="slide-13">
+        <div class="slide-header">
+            <span class="blueprint-tag">STAGE OPERATIONS 13 // WORKFLOW & CABLES</span>
+            <span class="slide-title">무대 감독 큐 사인을 연동한 음향 운용 및 케이블 배선 원칙</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-5 h-[85%]">
+            <!-- Left Stage Manager Workflow -->
+            <div class="glass-card h-full flex flex-col justify-between border-t-4 border-t-blue-500">
+                <div>
+                    <span class="text-xs font-mono text-blue-400 font-bold block mb-1">STAGE MANAGEMENT WORKFLOW</span>
+                    <h3 class="text-xl font-bold text-white mb-2">무대 감독(Stage Manager) 큐 연동</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                        공연 현장의 총책임자는 무대 감독입니다. 음향 감독은 아무리 준비가 되었더라도 반드시 무대 감독의 <strong>"음향 큐 (Sound Go)"</strong> 사인이 떨어진 후 효과음을 재생합니다.
+                    </p>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-blue-800/40 text-center my-2 relative">
+                    <div class="w-full h-28 relative canvas-container">
+                        <canvas id="canvas-cue-light" class="visualizer-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-blue-950/60 p-3 rounded-lg border border-blue-800/50 text-xs text-blue-200 text-center font-bold">
+                    🎧 Standby Sound ➔ Cue Sound GO! (타 기관과의 철저한 협업)
+                </div>
+            </div>
+
+            <!-- Right Cable Crosstalk Simulation -->
+            <div class="glass-card h-full flex flex-col justify-between border-t-4 border-t-amber-500">
+                <div>
+                    <span class="text-xs font-mono text-amber-400 font-bold block mb-1">CABLE LAYOUT & HUM NOISE DEFENSE</span>
+                    <h3 class="text-xl font-bold text-white mb-2">케이블 배선 및 험 노이즈 방어</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        전원 케이블(220V)의 주위에는 전자기장이 형성되어 오디오 라인에 <strong>60Hz 험 노이즈(Hum Noise)</strong>를 유도합니다.
+                    </p>
+                </div>
+
+                <div class="w-full h-36 relative bg-slate-950 rounded-lg overflow-hidden border border-slate-800 my-1 canvas-container">
+                    <canvas id="canvas-cable-cross" class="visualizer-canvas"></canvas>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="p-2 bg-red-950/60 border border-red-800/50 rounded text-red-200">
+                        ❌ <strong>나란히 평행 배치 (Parallel):</strong> 심각한 전자기 유도 험 노이즈 오디오 유입!
+                    </div>
+                    <div class="p-2 bg-emerald-950/60 border border-emerald-800/50 rounded text-emerald-200">
+                        ✅ <strong>십자가 직각 교차 (Perpendicular 90°):</strong> 전자기 간섭 최소화 원칙!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 14: Epilogue & Master Summary -->
+    <div class="slide" id="slide-14">
+        <div class="slide-header">
+            <span class="blueprint-tag">EPILOGUE // MASTER BLUEPRINT</span>
+            <span class="slide-title">무대음향 엔지니어의 3대 역량 구조 및 결론</span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-5 h-[85%] items-center">
+            <!-- Concentric Schematic Canvas -->
+            <div class="col-span-6 glass-card h-full flex flex-col justify-between relative">
+                <span class="text-xs font-mono text-cyan-400">CONCENTRIC ARCHITECTURE SCHEMATIC</span>
+                
+                <div class="w-full h-[85%] relative canvas-container">
+                    <canvas id="canvas-concentric" class="visualizer-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Summary Text Cards -->
+            <div class="col-span-6 h-full flex flex-col justify-between space-y-3">
+                <div class="glass-card p-3 border-l-4 border-l-blue-500">
+                    <h4 class="text-sm font-bold text-blue-400 mb-1">1. 미시적 본질 (Microscopic)</h4>
+                    <p class="text-xs text-slate-300">
+                        보이지 않는 파동 에너지 통제 (주파수, 위상, 진폭의 물리 법칙 완벽 이해)
+                    </p>
+                </div>
+
+                <div class="glass-card p-3 border-l-4 border-l-cyan-500">
+                    <h4 class="text-sm font-bold text-cyan-400 mb-1">2. 기술적 개입 (Technical)</h4>
+                    <p class="text-xs text-slate-300">
+                        음속 기반 딜레이 타워 계산, EQ/컴프레서 튜닝, dB SPL 청각 안전 관리
+                    </p>
+                </div>
+
+                <div class="glass-card p-3 border-l-4 border-l-emerald-500">
+                    <h4 class="text-sm font-bold text-emerald-400 mb-1">3. 거시적 공간 (Macroscopic)</h4>
+                    <p class="text-xs text-slate-300">
+                        프로시니엄 공간 구조 이해, 험 노이즈 차단, 무대 감독 큐 연동 및 협업
+                    </p>
+                </div>
+
+                <div class="p-4 bg-gradient-to-r from-blue-900/80 via-indigo-900/80 to-purple-900/80 rounded-xl border border-blue-400/50 shadow-lg text-center">
+                    <p class="text-sm lg:text-base font-black text-white leading-relaxed">
+                        "3급 무대음향 엔지니어는 단순 오퍼레이터가 아닙니다.<br>
+                        물리 법칙을 이해하고 환경에 적응하는 <span class="text-cyan-300">마스터 컨트롤러</span>입니다."
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+        <button id="prevBtn" class="nav-btn" disabled onclick="changeSlide(-1)">◀ PREV</button>
+        <span id="pageCounter" class="page-counter">01 / 14</span>
+        <button id="nextBtn" class="nav-btn" onclick="changeSlide(1)">NEXT ▶</button>
+    </div>
+
+</div>
+
+<!-- JavaScript Logic & Canvas Visualizers -->
+<script>
+    let currentSlide = 1;
+    const totalSlides = 14;
+
+    function changeSlide(direction) {
+        const oldSlide = document.getElementById(`slide-${currentSlide}`);
+        if (oldSlide) oldSlide.classList.remove('active');
+
+        currentSlide += direction;
+        if (currentSlide < 1) currentSlide = 1;
+        if (currentSlide > totalSlides) currentSlide = totalSlides;
+
+        const newSlide = document.getElementById(`slide-${currentSlide}`);
+        if (newSlide) newSlide.classList.add('active');
+
+        document.getElementById('pageCounter').innerText = 
+            `${String(currentSlide).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+
+        document.getElementById('prevBtn').disabled = (currentSlide === 1);
+        document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+
+        // Trigger ThreeJS resize if on slide 12
+        if (currentSlide === 12 && window.resizeThreeJs) {
+            window.resizeThreeJs();
+        }
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'Space') changeSlide(1);
+        if (e.key === 'ArrowLeft') changeSlide(-1);
+    });
+
+    /* Utility: Canvas setup helper */
+    function initCanvas(id) {
+        const canvas = document.getElementById(id);
+        if (!canvas) return null;
+        
+        const container = canvas.parentElement;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        
+        function resize() {
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            // Only resize if dimensions are > 0 to prevent issues when hidden
+            if (rect.width > 0 && rect.height > 0) {
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.scale(dpr, dpr);
+            }
+        }
+        
+        resize(); // Initial resize
+        
+        // Ensure canvases resize correctly when window resizes
+        window.addEventListener('resize', resize);
+        
+        // Return getWidth/getHeight based on internal CSS dimensions, ignoring DPR scaling
+        return { 
+            canvas, 
+            ctx, 
+            getWidth: () => canvas.width / dpr, 
+            getHeight: () => canvas.height / dpr,
+            triggerResize: resize
+        };
+    }
+
+    /* ANIMATION LOOPS FOR CANVASES */
+    let animFrameId;
+    let time = 0;
+    
+    // Store canvas context wrappers
+    const canvases = {};
+
+    window.onload = function() {
+        canvases.c1 = initCanvas('canvas-slide-1');
+        canvases.cStep1 = initCanvas('canvas-step1');
+        canvases.cStep2 = initCanvas('canvas-step2');
+        canvases.cStep3 = initCanvas('canvas-step3');
+        canvases.c3 = initCanvas('canvas-slide-3');
+        canvases.cEq = initCanvas('canvas-eq-knob');
+        canvases.cClip = initCanvas('canvas-clipping');
+        canvases.cTweet = initCanvas('canvas-tweeter-setup');
+        canvases.cDiffLow = initCanvas('canvas-diffraction-low');
+        canvases.cDiffHigh = initCanvas('canvas-diffraction-high');
+        canvases.cSpkAim = initCanvas('canvas-speaker-aim');
+        canvases.cPhase = initCanvas('canvas-phase-sync');
+        canvases.cInter = initCanvas('canvas-interference');
+        canvases.cTherm = initCanvas('canvas-thermal-sim');
+        canvases.cDelay = initCanvas('canvas-delay-sim');
+        canvases.cLog = initCanvas('canvas-log-funnel');
+        canvases.cSpl = initCanvas('canvas-spl-meter');
+        canvases.cCue = initCanvas('canvas-cue-light');
+        canvases.cCable = initCanvas('canvas-cable-cross');
+        canvases.cConc = initCanvas('canvas-concentric');
+
+        // Phase flip state for Slide 7
+        let isPhaseInverted = false;
+        const btnTogglePhase = document.getElementById('btn-toggle-phase');
+        if (btnTogglePhase) {
+            btnTogglePhase.addEventListener('click', () => {
+                isPhaseInverted = !isPhaseInverted;
+                btnTogglePhase.classList.toggle('bg-red-600', isPhaseInverted);
+                btnTogglePhase.classList.toggle('bg-blue-600', !isPhaseInverted);
+            });
+        }
+
+        // Temperature slider for Slide 8
+        const tempRange = document.getElementById('temp-range');
+        const tempDisplay = document.getElementById('temp-display');
+        const speedDisplay = document.getElementById('speed-result-display');
+        let currentTemp = 15;
+
+        if (tempRange) {
+            tempRange.addEventListener('input', (e) => {
+                currentTemp = parseFloat(e.target.value);
+                if (tempDisplay) tempDisplay.innerText = `${currentTemp} ℃`;
+                const speed = (331.5 + 0.6 * currentTemp).toFixed(1);
+                if (speedDisplay) speedDisplay.innerText = `CALCULATED SPEED: ${speed} m/s`;
+            });
+        }
+
+        // Initialize Three.js on Slide 12
+        initThreeJsSlide12();
+        
+        // Force resize on active slide initially
+        triggerResizeForActiveSlide();
+
+        function renderLoop() {
+            time += 0.03;
+
+            // --- Slide 1: Main Glowing Sine Wave ---
+            if (canvases.c1 && currentSlide === 1) {
+                const { ctx, getWidth, getHeight } = canvases.c1;
+                const w = getWidth(), h = getHeight();
+                if(w > 0 && h > 0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    // Grid background
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.15)';
+                    ctx.lineWidth = 1;
+                    for (let x = 0; x < w; x += 30) {
+                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+                    }
+                    for (let y = 0; y < h; y += 30) {
+                        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+                    }
+
+                    // Center line
+                    ctx.strokeStyle = '#475569'; ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+                    // Sine wave
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#0284c7';
+                    ctx.shadowBlur = 12;
+                    for (let x = 0; x < w; x++) {
+                        const y = h/2 + Math.sin(x * 0.02 - time) * (h * 0.3);
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // --- Slide 2: Step 1 Vibration (Bell/Speaker) ---
+            if (canvases.cStep1 && currentSlide === 2) {
+                const { ctx, getWidth, getHeight } = canvases.cStep1;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    const r = 25 + Math.sin(time * 5) * 6;
+                    ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(w/2, h/2, r, 0, Math.PI * 2); ctx.stroke();
+                    // Concentric ripples
+                    for (let i = 1; i <= 3; i++) {
+                        const ripR = (r + i * 20 + time * 10) % 80;
+                        ctx.strokeStyle = `rgba(96, 165, 250, ${1 - ripR/80})`;
+                        ctx.beginPath(); ctx.arc(w/2, h/2, ripR, 0, Math.PI * 2); ctx.stroke();
+                    }
+                }
+            }
+
+            // --- Slide 2: Step 2 Medium Waves ---
+            if (canvases.cStep2 && currentSlide === 2) {
+                const { ctx, getWidth, getHeight } = canvases.cStep2;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    // Air particles moving horizontally
+                    ctx.fillStyle = '#22d3ee';
+                    for (let x = 10; x < w - 10; x += 15) {
+                        for (let y = 10; y < h - 10; y += 15) {
+                            const offsetX = Math.sin(x * 0.05 - time * 3) * 8;
+                            ctx.beginPath();
+                            ctx.arc(x + offsetX, y, 2.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // --- Slide 2: Step 3 Microphone Signal ---
+            if (canvases.cStep3 && currentSlide === 2) {
+                const { ctx, getWidth, getHeight } = canvases.cStep3;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.strokeStyle = '#34d399'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let x = 0; x < w; x++) {
+                        const y = h/2 + Math.sin(x * 0.08 - time * 4) * (h * 0.25);
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+
+            // --- Slide 3: Wave Measurement Analyzer ---
+            if (canvases.c3 && currentSlide === 3) {
+                const { ctx, getWidth, getHeight } = canvases.c3;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#818cf8'; ctx.lineWidth = 3;
+                    for (let x = 0; x < w; x++) {
+                        const y = h/2 + Math.sin(x * 0.02 - time * 1.5) * (h * 0.3);
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+
+            // --- Slide 4: EQ Knob Simulator ---
+            if (canvases.cEq && currentSlide === 4) {
+                const { ctx, getWidth, getHeight } = canvases.cEq;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    const cx = w/2, cy = h/2;
+                    const r = h*0.4;
+                    // Outer ring
+                    ctx.strokeStyle = '#475569'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+                    
+                    // Rotating indicator
+                    const angle = Math.sin(time) * Math.PI*0.7 - Math.PI/2;
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, r, -Math.PI/2, angle, angle < -Math.PI/2);
+                    ctx.stroke();
+                    
+                    // Knob tick
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(cx, cy); 
+                    ctx.lineTo(cx + Math.cos(angle)*r*0.8, cy + Math.sin(angle)*r*0.8);
+                    ctx.stroke();
+                }
+            }
+
+            // --- Slide 4: Clipping Simulator ---
+            if (canvases.cClip && currentSlide === 4) {
+                const { ctx, getWidth, getHeight } = canvases.cClip;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const limit = h * 0.25;
+                    ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+                    ctx.beginPath(); ctx.moveTo(0, h/2 - limit); ctx.lineTo(w, h/2 - limit); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, h/2 + limit); ctx.lineTo(w, h/2 + limit); ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.beginPath(); ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 3;
+                    for (let x = 0; x < w; x++) {
+                        let y = h/2 + Math.sin(x * 0.06 - time * 2) * (h * 0.4);
+                        if (y < h/2 - limit) y = h/2 - limit; // Capped Peak
+                        if (y > h/2 + limit) y = h/2 + limit; // Capped Trough
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+            
+            // --- Slide 4: Tweeter Simulator ---
+            if (canvases.cTweet && currentSlide === 4) {
+                const { ctx, getWidth, getHeight } = canvases.cTweet;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    
+                    // Speaker Box
+                    ctx.fillStyle = '#1e293b'; ctx.fillRect(10, h*0.2, 30, h*0.6);
+                    ctx.fillStyle = '#38bdf8'; ctx.fillRect(15, h*0.25, 20, 20); // Tweeter
+                    
+                    // Direct waves
+                    ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0.1, Math.sin(time*5))})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(40, h*0.25 + 10); ctx.lineTo(w-10, h*0.25 + 10 + Math.sin(time)*10); ctx.stroke();
+                }
+            }
+
+            // --- Slide 6: Phase Unit Circle Sync ---
+            if (canvases.cPhase && currentSlide === 6) {
+                const { ctx, getWidth, getHeight } = canvases.cPhase;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const circleR = h * 0.35;
+                    const circleX = circleR + 20;
+                    const circleY = h/2;
+
+                    // Unit Circle
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(circleX, circleY, circleR, 0, Math.PI * 2); ctx.stroke();
+
+                    // Rotating vector angle
+                    const angle = (time * 1.5) % (Math.PI * 2);
+                    const px = circleX + Math.cos(-angle) * circleR;
+                    const py = circleY + Math.sin(-angle) * circleR;
+
+                    ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(circleX, circleY); ctx.lineTo(px, py); ctx.stroke();
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+
+                    // Connected Wave
+                    const waveStartX = circleX + circleR + 30;
+                    ctx.setLineDash([2, 2]); ctx.strokeStyle = 'rgba(244, 63, 94, 0.5)';
+                    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(waveStartX, py); ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.beginPath(); ctx.strokeStyle = '#818cf8'; ctx.lineWidth = 3;
+                    for (let x = waveStartX; x < w; x++) {
+                        const waveAngle = angle - (x - waveStartX) * 0.03;
+                        const wy = circleY + Math.sin(-waveAngle) * circleR;
+                        if (x === waveStartX) ctx.moveTo(x, wy); else ctx.lineTo(x, wy);
+                    }
+                    ctx.stroke();
+                }
+            }
+
+            // --- Slide 7: Interference Simulator ---
+            if (canvases.cInter && currentSlide === 7) {
+                const { ctx, getWidth, getHeight } = canvases.cInter;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const amp = h * 0.18;
+                    const phaseShift = isPhaseInverted ? Math.PI : 0;
+
+                    // Wave 1 (Green)
+                    ctx.strokeStyle = 'rgba(52, 211, 153, 0.6)'; ctx.lineWidth = 2; ctx.beginPath();
+                    for (let x = 0; x < w; x++) {
+                        const y = h * 0.25 + Math.sin(x * 0.04 - time * 2) * amp;
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+
+                    // Wave 2 (Red/Blue)
+                    ctx.strokeStyle = isPhaseInverted ? 'rgba(248, 113, 113, 0.6)' : 'rgba(96, 165, 250, 0.6)';
+                    ctx.lineWidth = 2; ctx.beginPath();
+                    for (let x = 0; x < w; x++) {
+                        const y = h * 0.5 + Math.sin(x * 0.04 - time * 2 + phaseShift) * amp;
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+
+                    // Combined Output Wave (Cyan or Flat Red)
+                    ctx.strokeStyle = isPhaseInverted ? '#ef4444' : '#06b6d4';
+                    ctx.lineWidth = 4; ctx.beginPath();
+                    for (let x = 0; x < w; x++) {
+                        const w1 = Math.sin(x * 0.04 - time * 2) * amp;
+                        const w2 = Math.sin(x * 0.04 - time * 2 + phaseShift) * amp;
+                        const y = h * 0.8 + (w1 + w2);
+                        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+
+                    // Update text status box
+                    const statusBox = document.getElementById('interference-status-box');
+                    if (statusBox) {
+                        if (isPhaseInverted) {
+                            statusBox.className = 'p-2.5 rounded-lg text-center font-bold text-xs bg-red-950/80 border border-red-600 text-red-200';
+                            statusBox.innerText = '❌ 상쇄 간섭 발생 (Out-of-Phase 180°): 에너지가 소실되어 음량이 감소합니다.';
+                        } else {
+                            statusBox.className = 'p-2.5 rounded-lg text-center font-bold text-xs bg-emerald-950/80 border border-emerald-600 text-emerald-200';
+                            statusBox.innerText = '✅ 보강 간섭 발생 (In-Phase 0°): 에너지가 2배 (+6dB) 증폭됩니다.';
+                        }
+                    }
+                }
+            }
+
+            // --- Slide 8: Thermal Air Molecules ---
+            if (canvases.cTherm && currentSlide === 8) {
+                const { ctx, getWidth, getHeight } = canvases.cTherm;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const speedFactor = (currentTemp + 20) * 0.1;
+                    ctx.fillStyle = '#38bdf8';
+                    for (let i = 0; i < 40; i++) {
+                        const bx = (i * 25 + time * 50 * speedFactor) % w;
+                        const by = (Math.sin(i + time * speedFactor) * 20) + h/2;
+                        ctx.beginPath(); ctx.arc(bx, by, 4, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+            }
+
+            // --- Slide 9: Delay Tower Wave Fronts ---
+            if (canvases.cDelay && currentSlide === 9) {
+                const { ctx, getWidth, getHeight } = canvases.cDelay;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    // Main Speaker on left
+                    ctx.fillStyle = '#3b82f6'; ctx.fillRect(20, h/2 - 20, 20, 40);
+                    // Delay Tower at 60%
+                    const dtX = w * 0.6;
+                    ctx.fillStyle = '#10b981'; ctx.fillRect(dtX, h/2 - 20, 15, 40);
+
+                    // Main Speaker Wavefronts
+                    for (let r = 0; r < w; r += 40) {
+                        const waveR = (r + time * 60) % w;
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${1 - waveR/w})`; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(30, h/2, waveR, -Math.PI/3, Math.PI/3); ctx.stroke();
+                    }
+
+                    // Delay Tower Wavefronts firing synced
+                    for (let r = 0; r < w - dtX; r += 40) {
+                        const waveR = (r + time * 60) % (w - dtX);
+                        ctx.strokeStyle = `rgba(16, 185, 129, ${1 - waveR/(w - dtX)})`; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.arc(dtX + 10, h/2, waveR, -Math.PI/3, Math.PI/3); ctx.stroke();
+                    }
+                }
+            }
+
+            // --- Slide 10: Log Funnel ---
+            if (canvases.cLog && currentSlide === 10) {
+                const { ctx, getWidth, getHeight } = canvases.cLog;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(w*0.1, h*0.1);
+                    ctx.quadraticCurveTo(w*0.5, h*0.4, w*0.9, h*0.45);
+                    ctx.lineTo(w*0.9, h*0.55);
+                    ctx.quadraticCurveTo(w*0.5, h*0.6, w*0.1, h*0.9);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(168, 85, 247, 0.15)'; ctx.fill();
+                }
+            }
+
+            // --- Slide 11: dB SPL Vertical Meter ---
+            if (canvases.cSpl && currentSlide === 11) {
+                const { ctx, getWidth, getHeight } = canvases.cSpl;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const barW = 40;
+                    const barX = w/2 - barW/2;
+                    const barH = h - 40;
+
+                    // Gradient bar
+                    const grad = ctx.createLinearGradient(0, h - 20, 0, 20);
+                    grad.addColorStop(0, '#3b82f6');
+                    grad.addColorStop(0.5, '#10b981');
+                    grad.addColorStop(0.8, '#f59e0b');
+                    grad.addColorStop(1, '#ef4444');
+
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(barX, 20, barW, barH);
+
+                    // Animated Level Marker
+                    const levelY = 20 + (Math.sin(time * 2) * 0.1 + 0.25) * barH;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(barX - 10, levelY, barW + 20, 4);
+                }
+            }
+            
+            // --- Slide 13: Cue Light ---
+            if (canvases.cCue && currentSlide === 13) {
+                const { ctx, getWidth, getHeight } = canvases.cCue;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+                    const cx = w/2, cy = h/2;
+                    const r = 30;
+                    
+                    // Box
+                    ctx.fillStyle = '#1e293b'; ctx.fillRect(cx - 50, cy - 40, 100, 80);
+                    
+                    // Flashing Light
+                    const isBlinking = Math.floor(time * 3) % 2 === 0;
+                    ctx.fillStyle = isBlinking ? '#ef4444' : '#450a0a';
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+                    
+                    if (isBlinking) {
+                        ctx.shadowColor = '#ef4444';
+                        ctx.shadowBlur = 20;
+                        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#fff'; ctx.font = '12px font-mono bold'; ctx.textAlign = 'center'; ctx.fillText('GO!', cx, cy+4);
+                    }
+                }
+            }
+
+            // --- Slide 13: Cable Cross ---
+            if (canvases.cCable && currentSlide === 13) {
+                const { ctx, getWidth, getHeight } = canvases.cCable;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    // Left: Parallel (Red Bad)
+                    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(20, h*0.3); ctx.lineTo(w*0.45, h*0.3); ctx.stroke();
+                    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(20, h*0.4); ctx.lineTo(w*0.45, h*0.4); ctx.stroke();
+                    
+                    // Wavy noise line
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for(let x=20; x<w*0.45; x++) {
+                        const y = h*0.35 + Math.sin(x*0.2 - time*5)*10;
+                        if(x===20) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+                    }
+                    ctx.stroke();
+
+                    // Right: 90 Deg Cross (Green Good)
+                    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(w*0.55, h*0.5); ctx.lineTo(w*0.95, h*0.5); ctx.stroke();
+                    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.moveTo(w*0.75, h*0.2); ctx.lineTo(w*0.75, h*0.8); ctx.stroke();
+                }
+            }
+
+            // --- Slide 14: Concentric Schematic ---
+            if (canvases.cConc && currentSlide === 14) {
+                const { ctx, getWidth, getHeight } = canvases.cConc;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0, 0, w, h);
+
+                    const cx = w/2, cy = h/2;
+                    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(cx, cy, h*0.4, 0, Math.PI * 2); ctx.stroke();
+                    ctx.strokeStyle = '#06b6d4';
+                    ctx.beginPath(); ctx.arc(cx, cy, h*0.28, 0, Math.PI * 2); ctx.stroke();
+                    ctx.strokeStyle = '#10b981';
+                    ctx.beginPath(); ctx.arc(cx, cy, h*0.15, 0, Math.PI * 2); ctx.stroke();
+                    
+                    // Rotating scanning line
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + Math.cos(time)*h*0.4, cy + Math.sin(time)*h*0.4);
+                    ctx.stroke();
+                }
+            }
+            
+            // --- Slide 5: Diffraction Low Freq (Fixed addition) ---
+            if (canvases.cDiffLow && currentSlide === 5) {
+                const { ctx, getWidth, getHeight } = canvases.cDiffLow;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0,0,w,h);
+                    ctx.fillStyle = '#475569'; ctx.fillRect(w/2 - 20, h/2 - 20, 40, 40); // Obstacle
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; ctx.lineWidth = 2;
+                    for (let x = 10; x < w; x += 30) {
+                        ctx.beginPath(); ctx.arc(10, h/2, (x + time*30)%w, -Math.PI/2, Math.PI/2); ctx.stroke();
+                    }
+                }
+            }
+
+            // --- Slide 5: Diffraction High Freq (Fixed addition) ---
+            if (canvases.cDiffHigh && currentSlide === 5) {
+                const { ctx, getWidth, getHeight } = canvases.cDiffHigh;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0,0,w,h);
+                    ctx.fillStyle = '#475569'; ctx.fillRect(w/2 - 20, h/2 - 20, 40, 40); // Obstacle
+                    
+                    // Shadow Zone
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(w/2 + 20, 0, w/2 - 20, h);
+                    
+                    ctx.strokeStyle = 'rgba(248, 113, 113, 0.5)'; ctx.lineWidth = 2;
+                    for (let x = 10; x < w/2 - 20; x += 15) {
+                        ctx.beginPath(); ctx.moveTo(x + (time*30)%15, 0); ctx.lineTo(x + (time*30)%15, h); ctx.stroke();
+                    }
+                }
+            }
+            
+            // --- Slide 5: Speaker Aim (Fixed addition) ---
+            if (canvases.cSpkAim && currentSlide === 5) {
+                const { ctx, getWidth, getHeight } = canvases.cSpkAim;
+                const w = getWidth(), h = getHeight();
+                if(w>0 && h>0) {
+                    ctx.clearRect(0,0,w,h);
+                    // Audience
+                    ctx.fillStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(w-30, h*0.6, 10, 0, Math.PI*2); ctx.fill(); // Head
+                    ctx.fillRect(w-32, h*0.6+10, 4, 30); // Body
+                    
+                    // Speaker Stack
+                    ctx.fillStyle = '#334155'; ctx.fillRect(20, h*0.5, 30, h*0.5); // Sub
+                    ctx.fillStyle = '#f59e0b'; ctx.fillRect(20, h*0.3, 30, 30); // Tweeter
+                    
+                    // Aiming line
+                    ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)'; ctx.setLineDash([5,5]); ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(50, h*0.3+15); ctx.lineTo(w-30, h*0.6); ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            animFrameId = requestAnimationFrame(renderLoop);
+        }
+
+        renderLoop();
+    };
+    
+    // Helper function to trigger resize for canvases on the active slide
+    function triggerResizeForActiveSlide() {
+        // A short timeout ensures the slide transitions from display:none to display:block
+        setTimeout(() => {
+             for (const key in canvases) {
+                 if (canvases[key] && typeof canvases[key].triggerResize === 'function') {
+                     canvases[key].triggerResize();
+                 }
+             }
+             if (currentSlide === 12 && window.resizeThreeJs) {
+                 window.resizeThreeJs();
+             }
+        }, 50);
+    }
+    
+    // Update the existing changeSlide function to call the resizer
+    const originalChangeSlide = changeSlide;
+    changeSlide = function(direction) {
+        originalChangeSlide(direction);
+        triggerResizeForActiveSlide();
+    }
+
+    /* THREE.JS 3D PROSCENIUM THEATER MODEL FOR SLIDE 12 */
+    function initThreeJsSlide12() {
+        const container = document.getElementById('threejs-container-slide12');
+        if (!container) return;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050811);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 5, 20);
+        camera.lookAt(0, 2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0x38bdf8, 2);
+        spotLight.position.set(0, 15, 10);
+        scene.add(spotLight);
+
+        // Proscenium Frame
+        const frameGeo = new THREE.BoxGeometry(12, 8, 0.5);
+        const frameMat = new THREE.MeshPhongMaterial({ color: 0x1e293b });
+        const frame = new THREE.Mesh(frameGeo, frameMat);
+        frame.position.set(0, 4, 0);
+        scene.add(frame);
+
+        // Inner Stage Cutout Frame Glow
+        const archGeo = new THREE.RingGeometry(3.8, 4.2, 4);
+        const archMat = new THREE.MeshBasicMaterial({ color: 0x2563eb, side: THREE.DoubleSide });
+        const arch = new THREE.Mesh(archGeo, archMat);
+        arch.position.set(0, 4, 0.3);
+        arch.rotation.z = Math.PI / 4;
+        scene.add(arch);
+
+        // Audience Seats Grid
+        for (let x = -5; x <= 5; x += 1.5) {
+            for (let z = 5; z <= 12; z += 1.5) {
+                const seatGeo = new THREE.BoxGeometry(0.8, 0.6, 0.8);
+                const seatMat = new THREE.MeshPhongMaterial({ color: 0x475569 });
+                const seat = new THREE.Mesh(seatGeo, seatMat);
+                seat.position.set(x, 0.3, z);
+                scene.add(seat);
+            }
+        }
+
+        // Animation Orbit
+        let rotAngle = 0;
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            rotAngle += 0.005;
+            camera.position.x = Math.sin(rotAngle) * 18;
+            camera.position.z = Math.cos(rotAngle) * 18;
+            camera.lookAt(0, 3, 0);
+            renderer.render(scene, camera);
+        }
+        animate3D();
+
+        window.resizeThreeJs = function() {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        };
+    }
+</script>
+
+</body>
+</html>
